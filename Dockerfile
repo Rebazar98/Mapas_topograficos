@@ -18,9 +18,7 @@ RUN mkdir -p /tmp/runtime-root && chmod 700 /tmp/runtime-root
 
 WORKDIR /app
 
-# ─────────────────────────────────────────────
 # Capas pesadas desde el release "topografia" tag 1.0.1
-# ─────────────────────────────────────────────
 RUN mkdir -p /app/data && \
     curl -L "https://github.com/Rebazar98/topografia/releases/download/1.0.1/Curvas_Nivel_DIRECTORAS_H0013.gml" \
       -o /app/data/Curvas_Nivel_DIRECTORAS_H0013.gml && \
@@ -32,7 +30,7 @@ RUN mkdir -p /app/data && \
       -o /app/data/T0056_edificacion_S.gml
 
 # Proyecto QGIS y app
-COPY Topo.qgz /app/proyecto.qgz
+COPY Topo.qgz /app/Topo.qgz
 COPY app.py   /app/app.py
 
 # FastAPI + Uvicorn
