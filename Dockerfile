@@ -19,8 +19,7 @@ RUN mkdir -p /tmp/runtime-root && chmod 700 /tmp/runtime-root
 WORKDIR /app
 
 # ─────────────────────────────────────────────
-# Descarga de capas pesadas desde el release 1.0.1 (topografia)
-# Sustituye NOMBRE_DEL_REPO por el nombre REAL de tu repo
+# Capas pesadas desde el release "topografia" tag 1.0.1
 # ─────────────────────────────────────────────
 RUN mkdir -p /app/data && \
     curl -L "https://github.com/Rebazar98/topografia/releases/download/1.0.1/Curvas_Nivel_DIRECTORAS_H0013.gml" \
@@ -32,10 +31,9 @@ RUN mkdir -p /app/data && \
     curl -L "https://github.com/Rebazar98/topografia/releases/download/1.0.1/T0056_edificacion_S.gml" \
       -o /app/data/T0056_edificacion_S.gml
 
-# Proyecto QGIS y datos ligeros (van dentro del repo)
-COPY proyecto.qgz       /app/proyecto.qgz
-COPY capas_parcela.gpkg /app/capas_parcela.gpkg
-COPY app.py             /app/app.py
+# Proyecto QGIS y app
+COPY proyecto.qgz /app/proyecto.qgz
+COPY app.py       /app/app.py
 
 # FastAPI + Uvicorn
 RUN pip3 install fastapi uvicorn[standard] pydantic
