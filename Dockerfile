@@ -32,8 +32,8 @@ RUN mkdir -p /app/data && \
       -o /app/data/T0056_edificacion_S.gml
 
 # Proyecto QGIS y app
-COPY proyecto.qgz /app/proyecto.qgz
-COPY app.py       /app/app.py
+COPY Topo.qgz /app/proyecto.qgz
+COPY app.py   /app/app.py
 
 # FastAPI + Uvicorn
 RUN pip3 install fastapi uvicorn[standard] pydantic
