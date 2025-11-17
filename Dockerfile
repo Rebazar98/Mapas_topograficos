@@ -18,15 +18,15 @@ RUN mkdir -p /tmp/runtime-root && chmod 700 /tmp/runtime-root
 
 WORKDIR /app
 
-# Capas pesadas desde el release "topografia" tag 1.0.1
+# Capas pesadas desde el release "topografia" del repo Mapas_topograficos, tag 1.0.1
 RUN mkdir -p /app/data && \
-    curl -L "https://github.com/Rebazar98/topografia/releases/download/1.0.1/Curvas_Nivel_DIRECTORAS_H0013.gml" \
+    curl -L "https://github.com/Rebazar98/Mapas_topograficos/releases/download/1.0.1/Curvas_Nivel_DIRECTORAS_H0013.gml" \
       -o /app/data/Curvas_Nivel_DIRECTORAS_H0013.gml && \
-    curl -L "https://github.com/Rebazar98/topografia/releases/download/1.0.1/Curvas_Nivel_Intermedias_H0013.gml" \
+    curl -L "https://github.com/Rebazar98/Mapas_topograficos/releases/download/1.0.1/Curvas_Nivel_Intermedias_H0013.gml" \
       -o /app/data/Curvas_Nivel_Intermedias_H0013.gml && \
-    curl -L "https://github.com/Rebazar98/topografia/releases/download/1.0.1/Red_fluvial.gml" \
+    curl -L "https://github.com/Rebazar98/Mapas_topograficos/releases/download/1.0.1/Red_fluvial.gml" \
       -o /app/data/Red_fluvial.gml && \
-    curl -L "https://github.com/Rebazar98/topografia/releases/download/1.0.1/T0056_edificacion_S.gml" \
+    curl -L "https://github.com/Rebazar98/Mapas_topograficos/releases/download/1.0.1/T0056_edificacion_S.gml" \
       -o /app/data/T0056_edificacion_S.gml
 
 # Proyecto QGIS y app
