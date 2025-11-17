@@ -8,14 +8,12 @@ from typing import List, Tuple, Optional
 from fastapi import FastAPI, Query
 from fastapi.responses import FileResponse, JSONResponse
 
-app = FastAPI(title="QGIS Planos por refcat - Nuevo proyecto")
-
+app = FastAPI(title="QGIS Imágenes por refcat - Nuevo proyecto")
 
 # Config desde variables de entorno (Railway) o por defecto
 QGIS_PROJECT = os.getenv("QGIS_PROJECT", "/app/proyecto.qgz")
 QGIS_LAYOUT  = os.getenv("QGIS_LAYOUT",  "Plano_urbanistico_parcela")
-QGIS_ALGO    = os.getenv("QGIS_ALGO",    "native:atlaslayouttopdf")
-
+QGIS_ALGO    = os.getenv("QGIS_ALGO",    "native:atlaslayouttoimage")
 
 def run_proc(
     cmd: List[str],
@@ -23,10 +21,6 @@ def run_proc(
     stdin_text: Optional[str] = None,
     timeout: int = 120,
 ) -> Tuple[int, str, str]:
-    """
-    Ejecuta un comando y devuelve (returncode, stdout, stderr)
-    con las variables necesarias para modo offscreen.
-    """
     env = os.environ.copy()
     env.setdefault("QT_QPA_PLATFORM", "offscreen")
     env.setdefault("XDG_RUNTIME_DIR", "/tmp/runtime-root")
@@ -46,9 +40,7 @@ def run_proc(
         )
         return p.returncode, p.stdout, p.stderr
     except subprocess.TimeoutExpired as e:
-        # Devolvemos un código tipo 124 para identificar timeout
         return 124, e.stdout or "", (e.stderr or "") + "\n[TIMEOUT EXPIRED]"
-
 
 @app.get("/health")
 def health():
@@ -59,35 +51,23 @@ def health():
         "algo": QGIS_ALGO,
     }
 
-
 @app.get("/render")
 def render(
     refcat: str = Query(..., min_length=3),
-    debug: int = Query(0, description="Si !=0, devuelve JSON de debug en vez del PDF"),
+    debug: int = Query(0, description="Si !=0, devuelve JSON de debug en vez del PNG"),
 ):
-    """
-    Genera el PDF del atlas para la parcela cuyo refcat se pasa.
-
-    En el proyecto QGIS del NUEVO repositorio, el atlas del layout debe tener:
-        - Capa cobertura = la capa de parcelas (en capas_parcela.gpkg)
-        - Filtrar con = "refcat" = env('REFCAT')
-    """
-
     if not os.path.exists(QGIS_PROJECT):
         return JSONResponse(
             status_code=500,
             content={"error": "Proyecto no encontrado", "path": QGIS_PROJECT},
         )
 
-    # Fichero temporal de salida
-    fd, outpath = tempfile.mkstemp(suffix=".pdf")
-    os.close(fd)
+    outdir = tempfile.mkdtemp()
 
-    # Payload JSON para qgis_process (sin FILTER_EXPRESSION)
     payload = {
         "inputs": {
             "LAYOUT": QGIS_LAYOUT,
-            "OUTPUT": outpath,
+            "FOLDER": outdir,
         },
         "project_path": QGIS_PROJECT,
     }
@@ -98,49 +78,34 @@ def render(
         "-a",
         "qgis_process",
         "run",
-        QGIS_ALGO,  # native:atlaslayouttopdf
-        "-",        # lee JSON por stdin
+        QGIS_ALGO,  # native:atlaslayouttoimage
+        "-",
     ]
 
-    extra_env = {
-        "REFCAT": refcat,
-    }
+    extra_env = {"REFCAT": refcat}
 
     code, out, err = run_proc(cmd, extra_env=extra_env, stdin_text=payload_json)
 
-    # Modo debug: devolvemos toda la info
-    if debug:
-        info = {
-            "refcat": refcat,
-            "cmd": " ".join(shlex.quote(c) for c in cmd),
-            "stdout": out,
-            "stderr": err,
-            "exit_code": code,
-            "output_exists": os.path.exists(outpath),
-            "output_size": os.path.getsize(outpath) if os.path.exists(outpath) else 0,
-            "payload": payload,
-        }
-        return JSONResponse(info)
+    img_files = [f for f in os.listdir(outdir) if f.endswith(".png")]
+    img_path = os.path.join(outdir, img_files[0]) if img_files else None
 
-    # Errores o PDF vacío
-    if code != 0 or not os.path.exists(outpath) or os.path.getsize(outpath) == 0:
+    if debug or code != 0 or not img_path or not os.path.exists(img_path):
         return JSONResponse(
-            status_code=500,
+            status_code=500 if code != 0 else 200,
             content={
-                "error": "qgis_process failed",
+                "refcat": refcat,
                 "cmd": " ".join(shlex.quote(c) for c in cmd),
                 "stdout": out,
                 "stderr": err,
                 "exit_code": code,
-                "output_exists": os.path.exists(outpath),
-                "output_size": os.path.getsize(outpath) if os.path.exists(outpath) else 0,
+                "output_exists": bool(img_path),
+                "output_size": os.path.getsize(img_path) if img_path else 0,
                 "payload": payload,
             },
         )
 
-    # OK -> devolvemos el PDF
     return FileResponse(
-        outpath,
-        media_type="application/pdf",
-        filename=f"informe_{refcat}.pdf",
+        img_path,
+        media_type="image/png",
+        filename=f"informe_{refcat}.png",
     )
